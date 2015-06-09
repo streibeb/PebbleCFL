@@ -1,11 +1,47 @@
 var UI = require('ui');
 var Ajax = require('ajax');
 var Vector2 = require('vector2');
+var Light = require('ui/light');
 
-var refreshInterval = 15; // in Minutes
+var init = true;
+var timezone = localStorage.getItem('timezone');
+var refreshInterval = 1; // in Minutes
+var refreshTimer;
+
+// Screens of application
+var splash = null;
+var gameScreen = null;
+var weekMenu = null;
+var mainMenu = null;
+
+Pebble.addEventListener('showConfiguration', function(e) {
+  // Show config page
+  Pebble.openURL('http://streibel.ca/CFLSchedule/PebbleCFL_settings.html');
+  Pebble.addEventListener("webviewclosed", function(e) {
+    // webview closed
+    
+    init = true;
+    splash.show();
+    if (gameScreen) {
+      gameScreen.hide();
+    } 
+    if (weekMenu) {
+      weekMenu.hide();
+    } 
+    if (mainMenu) {
+      mainMenu.hide();
+    } 
+    
+    var options = JSON.parse(decodeURIComponent(e.response));
+    timezone = options.timezone;
+    localStorage.setItem('timezone', timezone);
+    
+    GetSchedule();
+  }); 
+});
 
 // Show splash
-var splash = new UI.Window({fullscreen: true});
+splash = new UI.Window({fullscreen: true});
 var image = new UI.Image({
   position: new Vector2(10, 0),
   size: new Vector2(124, 144),
@@ -21,7 +57,23 @@ splash.add(text);
 splash.show();
 
 GetSchedule();
-setInterval(function () {GetSchedule();}, refreshInterval * 60000);
+
+var getDate = function() {
+  var today = new Date();
+  var dd = today.getDate();
+  var mm = today.getMonth()+1; //January is 0!
+  var yyyy = today.getFullYear();
+  if(dd<10){
+      dd='0'+dd;
+  } 
+  if(mm<10){
+      mm='0'+mm;
+  }
+  var hr = today.getHours();
+  var min = today.getMinutes();
+  var sec = today.getSeconds();
+  console.log(yyyy+'-'+mm+'-'+dd+' '+hr+':'+min+':'+sec);
+};
 
 var parseFeed = function(data, quantity) {
   var items = [];
@@ -50,13 +102,13 @@ var parseGames = function(data, quantity) {
 };
 
 function GetSchedule() {
-  var URL = "http://streibel.ca/CFLSchedule/GetSchedule.php?time_zone=eastern";
+  var URL = "http://streibel.ca/CFLSchedule/GetSchedule.php?time_zone="+timezone;
   // Download data
   Ajax({url: URL, type: 'json'},
     function(responseText) {   
       var menuItems = parseFeed(responseText, responseText.length);
       
-      var mainMenu = new UI.Menu({
+      mainMenu = new UI.Menu({
         sections: [{
           title: 'CFL Schedule',
           items: menuItems
@@ -68,7 +120,7 @@ function GetSchedule() {
         //selectedWeek = event.item;
         selectedWeek = responseText[event.itemIndex];
         var weekItems = parseGames(selectedWeek.games, selectedWeek.games.length);
-        var weekMenu = new UI.Menu({
+        weekMenu = new UI.Menu({
           sections: [{
             title: selectedWeek.name,
             items: weekItems
@@ -77,7 +129,7 @@ function GetSchedule() {
         
         weekMenu.on('select', function(event) {
           var selectedGame = selectedWeek.games[event.itemIndex];
-          var game = new UI.Window({
+          gameScreen = new UI.Window({
             backgroundColor: 'white',
             fullscreen: true
           });
@@ -90,7 +142,7 @@ function GetSchedule() {
             color: 'white',
             text: selectedWeek.name
           });
-          game.add(weekHeader);
+          gameScreen.add(weekHeader);
           var awayTitle = new UI.Text({
             position: new Vector2(10, 30),
             size: new Vector2(57, 20),
@@ -98,7 +150,7 @@ function GetSchedule() {
             color: 'black',
             text: 'AWAY'
           });
-          game.add(awayTitle);
+          gameScreen.add(awayTitle);
           var homeTitle = new UI.Text({
             position: new Vector2(77, 30),
             size: new Vector2(57, 20),
@@ -106,7 +158,7 @@ function GetSchedule() {
             color: 'black',
             text: 'HOME'
           });
-          game.add(homeTitle);
+          gameScreen.add(homeTitle);
           var awayScore = new UI.Text({
             position: new Vector2(10, 55),
             size: new Vector2(57, 40),
@@ -115,7 +167,7 @@ function GetSchedule() {
             color: 'black',
             text: selectedGame.AwayScore
           });
-          game.add(awayScore);
+          gameScreen.add(awayScore);
           var homeScore = new UI.Text({
             position: new Vector2(77, 55),
             size: new Vector2(57, 40),
@@ -124,7 +176,7 @@ function GetSchedule() {
             color: 'black',
             text: selectedGame.HomeScore
           });
-          game.add(homeScore);
+          gameScreen.add(homeScore);
           var awayTeam = new UI.Text({
             position: new Vector2(10, 100),
             size: new Vector2(57, 20),
@@ -133,7 +185,7 @@ function GetSchedule() {
             color: 'black',
             text: selectedGame.AwayTeamShort
           });
-          game.add(awayTeam);
+          gameScreen.add(awayTeam);
           var homeTeam = new UI.Text({
             position: new Vector2(77, 100),
             size: new Vector2(57, 20),
@@ -142,7 +194,7 @@ function GetSchedule() {
             color: 'black',
             text: selectedGame.HomeTeamShort
           });
-          game.add(homeTeam);
+          gameScreen.add(homeTeam);
           var date = new UI.Text({
             position: new Vector2(0, 130),
             size: new Vector2(144, 40),
@@ -151,16 +203,23 @@ function GetSchedule() {
             color: 'white',
             text: selectedGame.Date
           });
-          game.add(date);
+          gameScreen.add(date);
           
-          game.show();
+          gameScreen.show();
         });
         
         weekMenu.show();
       });
   
-      mainMenu.show();
-      splash.hide();
+      if (init) {
+        mainMenu.show();
+        splash.hide();
+        init = false;
+      }
+      Light.trigger();
+      
+      getDate();
+      refreshTimer = setTimeout(function () {GetSchedule();}, refreshInterval * 60000);
     },
     function(error) {
       console.log('Ajax failed: ' + error);
