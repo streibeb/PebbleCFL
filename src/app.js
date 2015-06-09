@@ -1,14 +1,32 @@
 var UI = require('ui');
-var ajax = require('ajax');
+var Ajax = require('ajax');
+var Vector2 = require('vector2');
 
 var refreshInterval = 900000;
 
 // Show splash
 var splashCard = new UI.Card({
   title: "Please Wait",
-  body: "Downloading..."
+  body: "Downloading...",
+  icon: 'images/logo_bw.png'
 });
-splashCard.show();
+//splashCard.show();
+
+var splash = new UI.Window({fullscreen: true});
+var image = new UI.Image({
+  position: new Vector2(10, 0),
+  size: new Vector2(124, 144),
+  image: 'images/logo_bw.png'
+});
+splash.add(image);
+var text = new UI.Text({
+  position: new Vector2(40, 135),
+  size: new Vector2(144, 24),
+  text: 'Loading...'
+});
+splash.add(text);
+splash.show();
+
 GetSchedule();
 setInterval(function () {GetSchedule();}, refreshInterval);
 
@@ -41,7 +59,7 @@ var parseGames = function(data, quantity) {
 function GetSchedule() {
   var URL = "http://streibel.ca/CFLSchedule/GetSchedule.php?time_zone=eastern";
   // Download data
-  ajax({url: URL, type: 'json'},
+  Ajax({url: URL, type: 'json'},
     function(responseText) {   
       var menuItems = parseFeed(responseText, responseText.length);
       
@@ -81,7 +99,7 @@ function GetSchedule() {
       });
   
       mainMenu.show();
-      splashCard.hide();
+      splash.hide();
     },
     function(error) {
       console.log('Ajax failed: ' + error);
