@@ -2,16 +2,9 @@ var UI = require('ui');
 var Ajax = require('ajax');
 var Vector2 = require('vector2');
 
-var refreshInterval = 900000;
+var refreshInterval = 15; // in Minutes
 
 // Show splash
-var splashCard = new UI.Card({
-  title: "Please Wait",
-  body: "Downloading...",
-  icon: 'images/logo_bw.png'
-});
-//splashCard.show();
-
 var splash = new UI.Window({fullscreen: true});
 var image = new UI.Image({
   position: new Vector2(10, 0),
@@ -28,7 +21,7 @@ splash.add(text);
 splash.show();
 
 GetSchedule();
-setInterval(function () {GetSchedule();}, refreshInterval);
+setInterval(function () {GetSchedule();}, refreshInterval * 60000);
 
 var parseFeed = function(data, quantity) {
   var items = [];
@@ -84,13 +77,81 @@ function GetSchedule() {
         
         weekMenu.on('select', function(event) {
           var selectedGame = selectedWeek.games[event.itemIndex];
-          var game = new UI.Card({
-            title: selectedWeek.name,
-            body: selectedGame.Date + "\n" + 
-              selectedGame.AwayTeamShort + " - " + selectedGame.AwayScore + 
-              "\n@\n" + 
-              selectedGame.HomeTeamShort + " - " + selectedGame.HomeScore
+          var game = new UI.Window({
+            backgroundColor: 'white',
+            fullscreen: true
           });
+          var weekHeader = new UI.Text({
+            position: new Vector2(0, 0),
+            size: new Vector2(144, 30),
+            font: 'gothic-24-bold',
+            textAlign: 'center',
+            backgroundColor: 'black',
+            color: 'white',
+            text: selectedWeek.name
+          });
+          game.add(weekHeader);
+          var awayTitle = new UI.Text({
+            position: new Vector2(10, 30),
+            size: new Vector2(57, 20),
+            textAlign: 'center',
+            color: 'black',
+            text: 'AWAY'
+          });
+          game.add(awayTitle);
+          var homeTitle = new UI.Text({
+            position: new Vector2(77, 30),
+            size: new Vector2(57, 20),
+            textAlign: 'center',
+            color: 'black',
+            text: 'HOME'
+          });
+          game.add(homeTitle);
+          var awayScore = new UI.Text({
+            position: new Vector2(10, 55),
+            size: new Vector2(57, 40),
+            font: 'bitham-42-bold',
+            textAlign: 'center',
+            color: 'black',
+            text: selectedGame.AwayScore
+          });
+          game.add(awayScore);
+          var homeScore = new UI.Text({
+            position: new Vector2(77, 55),
+            size: new Vector2(57, 40),
+            font: 'bitham-42-bold',
+            textAlign: 'center',
+            color: 'black',
+            text: selectedGame.HomeScore
+          });
+          game.add(homeScore);
+          var awayTeam = new UI.Text({
+            position: new Vector2(10, 100),
+            size: new Vector2(57, 20),
+            font: 'gothic-24-bold',
+            textAlign: 'center',
+            color: 'black',
+            text: selectedGame.AwayTeamShort
+          });
+          game.add(awayTeam);
+          var homeTeam = new UI.Text({
+            position: new Vector2(77, 100),
+            size: new Vector2(57, 20),
+            font: 'gothic-24-bold',
+            textAlign: 'center',
+            color: 'black',
+            text: selectedGame.HomeTeamShort
+          });
+          game.add(homeTeam);
+          var date = new UI.Text({
+            position: new Vector2(0, 130),
+            size: new Vector2(144, 40),
+            textAlign: 'center',
+            backgroundColor: 'black',
+            color: 'white',
+            text: selectedGame.Date
+          });
+          game.add(date);
           
           game.show();
         });
